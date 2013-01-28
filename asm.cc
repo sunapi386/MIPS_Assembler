@@ -362,7 +362,8 @@ int main() {
                   string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
                   labelMap[trimmedLexeme] = labelNumber * 4;
                } else {
-                  cerr << "ERROR " << token.lexeme << " is already defined on line "
+                  cerr << "ERROR on line " << line << " " 
+                  << token.lexeme << " is already defined on line "
                   << it->second << endl;
                   exit (1);
                }
@@ -379,11 +380,11 @@ int main() {
                      j++;
                      labelNumber++;    
                   } else {             
-                     cerr << "ERROR expecting INT or HEXINT" << endl;
+                     cerr << "ERROR on line " << line << " expecting INT or HEXINT" << endl;
                      exit (1);
                   }
             } else {
-               cerr << "ERROR unrecognized token: " << token.lexeme << endl;
+               cerr << "ERROR on line " << line << " unrecognized token: " << token.lexeme << endl;
                exit (1);
             }
          }
@@ -392,7 +393,7 @@ int main() {
       // finished iterating the MIPS code, print out labels
       for (map<string, int>::const_iterator it = labelMap.begin();
       it != labelMap.end(); it++) {
-            cout << it->first << " " << it->second << endl;
+            cerr << it->first << " " << it->second << endl;
       }
 
 

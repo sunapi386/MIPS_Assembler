@@ -9,4 +9,5 @@ d:
 .word 0x80000000
 e:
 f:
-
+label1: .word 1234 label2:
+.word 3
