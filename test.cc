@@ -1,21 +1,15 @@
 // Test
 #include <iostream>
-#include <bitset>
-#include <climits>
+#include <cstdio>    // outbyte (int)
 
 using namespace std;
 
-template<typename T>
-void show_binrep (const T& a) {
-   const char* beg = reinterpret_cast<const char*> (&a);
-   const char* end = beg + sizeof (a);
-   while (beg != end) {
-      cout << bitset<32>(*beg++) << ' ';
-   }
-   cout << '\n';
+void outbyte (int i) {
+   putchar (i>>24);
+   putchar (i>>16);   
+   putchar (i>>8);
+   putchar (i);      
 }
-
 int main() {
-   int n = 30;
-   show_binrep(n);
+   outbyte (24);
 }

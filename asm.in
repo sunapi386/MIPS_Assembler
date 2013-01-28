@@ -1,2 +1,4 @@
 .word 30
+add $0, $1, $0
 .word 0x1234abcd
+label: beq $0, $0, $0
