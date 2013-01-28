@@ -271,9 +271,33 @@ string kindString( Kind k ){
     return kS[k];
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // JASONSUN's MODIFICATIONS BELOW
 
-#include <cstdio>    // outbyte (int)
+#include <cstdio>    // outbyte
+#include <cstdlib>   // exit
 
 void outbyte (int i) {
    putchar (i>>24);
@@ -316,22 +340,27 @@ int main() {
       for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
-            if(token.kind == DOTWORD) {
+            if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
                Token nextToken = tokLines[line][j+1];
                if (nextToken.kind == INT || nextToken.kind == HEXINT) {
                   int value = nextToken.toInt();
                   outbyte (value);
                   j++;
+               } else {
+                  cerr << "ERROR expecting INT or HEXINT" << endl;
+                  exit (1);
                }
             } else {
                cerr << "ERROR unrecognized token: " << token.lexeme << endl;
+               exit (1);
             }
          }
       }
 
 
    } catch(string msg) {
-     cerr << msg << endl;
+     cerr << "ERROR" << msg << endl;
+     exit (1);
    }
 
    return 0;
