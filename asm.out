@@ -1,0 +1,5 @@
+  Token: DOTWORD {.word}
+  Token: INT {30}30
+  Token: DOTWORD {.word}
+  Token: HEXINT {0x1234abcd}305441741
+

@@ -1,0 +1,2 @@
+.word 30
+.word 0x1234abcd
