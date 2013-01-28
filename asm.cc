@@ -302,9 +302,9 @@ string kindString( Kind k ){
 
 void outbyte (int i) {
    putchar (i>>24);
-   putchar (i>>16);   
+   putchar (i>>16);
    putchar (i>>8);
-   putchar (i);      
+   putchar (i);
 }
 
 void processTokenLABEL (Token t) {
@@ -350,30 +350,35 @@ int main() {
       for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
-            // since token is a label, add it to map
+
+
+            // A3P4 LABEL: since token is a label, add it to map
+            // if token does NOT exists already, add label to map
+            //  otherwise error - can't add it twice
             if (token.kind == LABEL) {
-               // if token does NOT exists already, add label to map
-               //  otherwise error - can't add it twice
                map <string, int>::iterator it = labelMap.find(token.lexeme);
                if (it == labelMap.end()) {
-                  // trim trailing ':' character
+                  // to trim trailing ':' character
                   string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
-                  labelMap[trimmedLexeme] = labelNumber;
+                  labelMap[trimmedLexeme] = labelNumber * 4;
                } else {
                   cerr << "ERROR " << token.lexeme << " is already defined on line "
                   << it->second << endl;
                   exit (1);
                }
-                  
+
+
+            // A3P3 DOTWORD
+            // if DOTWORD and a valid OPCODE follows, output and increment label counting
+            // if DOTWORD and next token is not INT or HEX, error
             } else if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
-//               processTokenDOTWORD (token);
                Token nextToken = tokLines[line][j+1];
                   if (nextToken.kind == INT || nextToken.kind == HEXINT) {
                      int value = nextToken.toInt();
                      outbyte (value);
                      j++;
-                     labelNumber++;    // everything valid, so increment for label counting
-                  } else { // next token after .word is not INT or HEX
+                     labelNumber++;    
+                  } else {             
                      cerr << "ERROR expecting INT or HEXINT" << endl;
                      exit (1);
                   }
@@ -383,7 +388,7 @@ int main() {
             }
          }
       }
-      
+
       // finished iterating the MIPS code, print out labels
       for (map<string, int>::const_iterator it = labelMap.begin();
       it != labelMap.end(); it++) {

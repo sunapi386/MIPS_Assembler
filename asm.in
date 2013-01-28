@@ -1,12 +1,12 @@
-.word 1
-.word 2
-.word 3
-.word 4
-.word 5
-.word 6
-.word 7
-.word 8
-.word 9
-.word 10
-label: .word 11
+a:
+b:
+.word 0x5678
+c: x:
+.word 5678
+.word -1234
+d:
+.word 0xffffffff 
+.word 0x80000000
+e:
+f:
 
