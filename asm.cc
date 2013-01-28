@@ -298,6 +298,7 @@ string kindString( Kind k ){
 
 #include <cstdio>    // outbyte
 #include <cstdlib>   // exit
+#include <map>       // labelling
 
 void outbyte (int i) {
    putchar (i>>24);
@@ -306,6 +307,15 @@ void outbyte (int i) {
    putchar (i);      
 }
 
+void processTokenLABEL (Token t) {
+   cerr << "not implemented yet\n";
+//   labelMap[token.lexeme] = labelNumber;
+//   labelNumber++;
+}
+
+void processTokenDOTWORD (Token t) {
+   cerr << "not implemented yet\n";
+}
 
 
 //======================================================================
@@ -333,33 +343,57 @@ int main() {
       tokLines.push_back(scan(srcLines[line]));
       }
 
-      // Check that each line is either null or contains .word and a valid operand,
-      // output the value of the operand, as 32 bits, to standard output.
-      // If the input is invalid you must output ERROR to standard error.
+      // additionally keep track of label and line it points to
+      int labelNumber = 0;
+      map <string, int> labelMap;
 
       for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
-            if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
-               Token nextToken = tokLines[line][j+1];
-               if (nextToken.kind == INT || nextToken.kind == HEXINT) {
-                  int value = nextToken.toInt();
-                  outbyte (value);
-                  j++;
+            // since token is a label, add it to map
+            if (token.kind == LABEL) {
+               // if token does NOT exists already, add label to map
+               //  otherwise error - can't add it twice
+               map <string, int>::iterator it = labelMap.find(token.lexeme);
+               if (it == labelMap.end()) {
+                  // trim trailing ':' character
+                  string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
+                  labelMap[trimmedLexeme] = labelNumber;
                } else {
-                  cerr << "ERROR expecting INT or HEXINT" << endl;
+                  cerr << "ERROR " << token.lexeme << " is already defined on line "
+                  << it->second << endl;
                   exit (1);
                }
+                  
+            } else if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
+//               processTokenDOTWORD (token);
+               Token nextToken = tokLines[line][j+1];
+                  if (nextToken.kind == INT || nextToken.kind == HEXINT) {
+                     int value = nextToken.toInt();
+                     outbyte (value);
+                     j++;
+                     labelNumber++;    // everything valid, so increment for label counting
+                  } else { // next token after .word is not INT or HEX
+                     cerr << "ERROR expecting INT or HEXINT" << endl;
+                     exit (1);
+                  }
             } else {
                cerr << "ERROR unrecognized token: " << token.lexeme << endl;
                exit (1);
             }
          }
       }
+      
+      // finished iterating the MIPS code, print out labels
+      for (map<string, int>::const_iterator it = labelMap.begin();
+      it != labelMap.end(); it++) {
+            cout << it->first << " " << it->second << endl;
+      }
+
 
 
    } catch(string msg) {
-     cerr << "ERROR" << msg << endl;
+     cerr << "ERROR " << msg << endl;
      exit (1);
    }
 
