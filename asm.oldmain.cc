@@ -299,7 +299,7 @@ string kindString( Kind k ){
 #include <cstdio>    // outbyte
 #include <cstdlib>   // exit
 
-void outbyte (int i) {
+void output (int i) {
    putchar (i>>24);
    putchar (i>>16);   
    putchar (i>>8);
@@ -338,7 +338,7 @@ int main() {
      for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
              Token token = tokLines[line][j];
-             cerr << "  Token: " << kindString(token.kind) 
+             cerr << "  Line: " << line << " Token: " << kindString(token.kind) 
                  << " {" << token.lexeme << "}";
              if(token.kind == INT || token.kind == HEXINT ||
                      token.kind == REGISTER) {

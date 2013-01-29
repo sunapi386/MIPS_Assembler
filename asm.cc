@@ -356,14 +356,18 @@ int main() {
             // if token does NOT exists already, add label to map
             //  otherwise error - can't add it twice
             if (token.kind == LABEL) {
-               map <string, int>::iterator it = labelMap.find(token.lexeme);
-               if (it == labelMap.end()) {
-                  // to trim trailing ':' character
-                  string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
-                  labelMap[trimmedLexeme] = labelNumber * 4;
+               // to trim trailing ':' character
+               string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
+               map <string, int>::iterator it = labelMap.find(trimmedLexeme);
+
+               // cannot have a label declaration after an instruction on the same line
+
+               if ((it == labelMap.end()) && 
+               (((j >= 1) && (tokLines[line][j-1].kind == LABEL)) || (j == 0))) {
+                     labelMap[trimmedLexeme] = labelNumber * 4;
                } else {
-                  cerr << "ERROR on line " << line << " " 
-                  << token.lexeme << " is already defined on line "
+                  cerr << "ERROR on labelNumber" << line << " " 
+                  << token.lexeme << " is already defined with value: "
                   << it->second << endl;
                   exit (1);
                }
@@ -379,12 +383,15 @@ int main() {
                      outbyte (value);
                      j++;
                      labelNumber++;    
+                     
                   } else {             
-                     cerr << "ERROR on line " << line << " expecting INT or HEXINT" << endl;
+                     cerr << "ERROR on labelNumber " << line << 
+                     " expecting INT or HEXINT" << endl;
                      exit (1);
                   }
             } else {
-               cerr << "ERROR on line " << line << " unrecognized token: " << token.lexeme << endl;
+               cerr << "ERROR on labelNumber " << line << 
+               " unrecognized token: " << token.lexeme << endl;
                exit (1);
             }
          }
