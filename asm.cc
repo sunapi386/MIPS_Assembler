@@ -317,6 +317,16 @@ void processTokenDOTWORD (Token t) {
    cerr << "not implemented yet\n";
 }
 
+//bool labelExists (string label) {
+//   map <string, int>::iterator it = labelMap.find(label);
+//   return it != labelMap.end();
+//}
+
+// labelAdd: not in use
+//void labelAdd (string label, int labelNumber, map <string, int> &labelMap) {
+//   string trimmedLexeme = label.substr(0, label.length()-1);
+//   labelMap[trimmedLexeme] = labelNumber * 4;
+//}
 
 //======================================================================
 //======= A sample program demonstrating the use of the scanner. =======
@@ -384,6 +394,37 @@ int main() {
                      j++;
                      labelNumber++;    
                      
+                  // A3P5: labels as operands
+                  } else if (nextToken.kind == ID) { 
+                     // check existance
+                     map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
+                     if (it == labelMap.end()) {                  
+                        cerr << "ERROR on labelNumber " << line << 
+                        ": label '" << nextToken.lexeme << "' was not found" << endl;
+                        exit (1);
+                     } else {
+                        // since label exists, dereference address and print to binary
+                        int value = labelMap[nextToken.lexeme];
+                        outbyte (value);
+                        j++;
+                        labelNumber++;
+//                        cout << "dereference: " << nextToken.lexeme << " " << value << endl;
+                     }
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
                   } else {             
                      cerr << "ERROR on labelNumber " << line << 
                      " expecting INT or HEXINT" << endl;
@@ -397,11 +438,12 @@ int main() {
          }
       }
 
-      // finished iterating the MIPS code, print out labels
-      for (map<string, int>::const_iterator it = labelMap.begin();
-      it != labelMap.end(); it++) {
-            cerr << it->first << " " << it->second << endl;
-      }
+//      // A3P4:
+//      // finished iterating the MIPS code, print out labels
+//      for (map<string, int>::const_iterator it = labelMap.begin();
+//      it != labelMap.end(); it++) {
+//            cerr << it->first << " " << it->second << endl;
+//      }
 
 
 

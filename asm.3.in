@@ -1,9 +1,3 @@
-label:
-.word label
-
-.word label2
-label2:
-
 a:
 
 b:
