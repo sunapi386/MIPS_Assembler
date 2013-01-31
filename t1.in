@@ -1,0 +1,46 @@
+input:
+begin:
+label: .word 1
+.word 1
+
+end:
+
+Input:
+a:
+
+b:
+.word e
+c:
+.word a
+.word f
+
+d:
+
+.word c
+
+.word b
+e:
+
+f:
+
+.word label1
+label1:
+.word 123
+x00label: .word 456
+.word x00label
+
+aaa:
+
+bbb:
+ccc: .word 1245
+ddd: .word eee
+eee:
+fff: .word 789
+
+.word 123
+label11: .word 456
+label22:
+label33: .word label44
+label44:
+label55: .word 999
+

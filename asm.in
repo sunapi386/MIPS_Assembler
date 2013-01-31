@@ -1,3 +1,5 @@
+.word 3
+.word 3
 label:
 .word label
 
@@ -18,5 +20,6 @@ d:
 
 .word b
 e:
-
+.word 3
+.word 3
 f:

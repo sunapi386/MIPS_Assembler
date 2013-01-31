@@ -357,86 +357,110 @@ int main() {
       int labelNumber = 0;
       map <string, int> labelMap;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      // A3P5: Pass #1, grab all the labels into map
       for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
+
             Token token = tokLines[line][j];
+            if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
+               Token nextToken = tokLines[line][j+1];
+               map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
+               if ((nextToken.kind == ID) && (it != labelMap.end())) {
+                  labelNumber++;
+               }
+               else if (nextToken.kind == INT
+               || nextToken.kind == HEXINT
+               || nextToken.kind == ID) {
+                  labelNumber++;
+               }
+            }
 
-
-            // A3P4 LABEL: since token is a label, add it to map
-            // if token does NOT exists already, add label to map
-            //  otherwise error - can't add it twice
+            token = tokLines[line][j];
             if (token.kind == LABEL) {
-               // to trim trailing ':' character
                string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
                map <string, int>::iterator it = labelMap.find(trimmedLexeme);
-
-               // cannot have a label declaration after an instruction on the same line
-
-               if ((it == labelMap.end()) && 
+               if ((it == labelMap.end()) &&
                (((j >= 1) && (tokLines[line][j-1].kind == LABEL)) || (j == 0))) {
                      labelMap[trimmedLexeme] = labelNumber * 4;
                } else {
-                  cerr << "ERROR on labelNumber" << line << " " 
+                  cerr << "ERROR on labelNumber" << line << " "
                   << token.lexeme << " is already defined with value: "
                   << it->second << endl;
                   exit (1);
                }
+            } // if (LABEL)
+         }
+      } // End Pass #1
+
+//      // After Pass #1, display labels
+//      for (map<string, int>::const_iterator it = labelMap.begin();
+//      it != labelMap.end(); it++) {
+//            cerr << it->first << " " << it->second << endl;
+//      }
 
 
-            // A3P3 DOTWORD
-            // if DOTWORD and a valid OPCODE follows, output and increment label counting
-            // if DOTWORD and next token is not INT or HEX, error
-            } else if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
+
+
+
+
+      // Pass #2
+      // Looks for .word with another operand behind it
+      for(int line=0; line < tokLines.size(); line++ ) {
+         for(int j=0; j < tokLines[line].size(); j++ ) {
+            Token token = tokLines[line][j];
+             if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
                Token nextToken = tokLines[line][j+1];
-                  if (nextToken.kind == INT || nextToken.kind == HEXINT) {
-                     int value = nextToken.toInt();
+               if (nextToken.kind == INT || nextToken.kind == HEXINT) {
+                  int value = nextToken.toInt();
+                  outbyte (value);
+                  j++;
+
+               } else
+
+               if (nextToken.kind == ID) { // A3P5: labels as operands
+                  map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
+                  if (it == labelMap.end()) {
+                     cerr << "ERROR on labelNumber " << line <<
+                     ": label '" << nextToken.lexeme << "' was not found" << endl;
+                     exit (1);
+                  } else {
+                     // since label exists, dereference address and print to binary
+                     int value = labelMap[nextToken.lexeme];
                      outbyte (value);
                      j++;
-                     labelNumber++;    
-                     
-                  // A3P5: labels as operands
-                  } else if (nextToken.kind == ID) { 
-                     // check existance
-                     map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
-                     if (it == labelMap.end()) {                  
-                        cerr << "ERROR on labelNumber " << line << 
-                        ": label '" << nextToken.lexeme << "' was not found" << endl;
-                        exit (1);
-                     } else {
-                        // since label exists, dereference address and print to binary
-                        int value = labelMap[nextToken.lexeme];
-                        outbyte (value);
-                        j++;
-                        labelNumber++;
 //                        cout << "dereference: " << nextToken.lexeme << " " << value << endl;
-                     }
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                     
-                  } else {             
-                     cerr << "ERROR on labelNumber " << line << 
-                     " expecting INT or HEXINT" << endl;
-                     exit (1);
                   }
+
+
+               }
+
+               else {
+                  cerr << "ERROR on labelNumber " << line <<
+                  " expecting INT or HEXINT" << endl;
+                  exit (1);
+               } // else
             } else {
-               cerr << "ERROR on labelNumber " << line << 
-               " unrecognized token: " << token.lexeme << endl;
-               exit (1);
-            }
-         }
-      }
+//               cerr << "ERROR on labelNumber " << line <<
+//               " unrecognized token: " << token.lexeme << "  " <<
+//               kindString(token.kind) << " " << line << endl;
+            } // else
+         } // End for word in line
+      } // End for line, Pass #2
+
 
 //      // A3P4:
 //      // finished iterating the MIPS code, print out labels
