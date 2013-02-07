@@ -353,6 +353,31 @@ void processTokenDOTWORD (Token t) {
 //   labelMap[trimmedLexeme] = labelNumber * 4;
 //}
 
+
+// true if the current line has a sequence of:
+// REGISTER, COMMA, INT, LPARENS, REGISTER, RPARENS
+// requires at least 7 tokens on the line for a valid lw or sw instruction
+bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < 7) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   Token tok6 = tokLines[line][j+6];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == INT &&
+         tok4.kind == LPAREN  &&
+         tok5.kind == REGISTER &&
+         tok6.kind == RPAREN )   {  return true;  }
+
+   return false;
+}
+
+
+
 //======================================================================
 //======= A sample program demonstrating the use of the scanner. =======
 //======================================================================
@@ -481,17 +506,34 @@ int main() {
                   exit (1);
                }
             }  // END IF .word token
-            
-            
-            
-            
+
+
+
+
 
             // sw and lw instructions
             else if (token.kind == ID) {
-            
-            
-            
-            
+               if (token.lexeme == "sw") {
+                  if (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j)) {
+                     int t =  tokLines[line][j+1].toInt();
+                     int i =  tokLines[line][j+3].toInt();
+                     int s =  tokLines[line][j+5].toInt();
+                     asm_sw (t, i, s);
+                  }
+               } else if (token.lexeme == "lw") {
+                  if (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j)) {
+                     int t =  tokLines[line][j+1].toInt();
+                     int i =  tokLines[line][j+3].toInt();
+                     int s =  tokLines[line][j+5].toInt();
+                     asm_lw (t, i, s);
+                  }
+               }
+
+
+
+
+
+
             } else {
 //               cerr << "ERROR on labelNumber " << line <<
 //               " unrecognized token: " << token.lexeme << "  " <<
