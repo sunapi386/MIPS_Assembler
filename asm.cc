@@ -299,6 +299,9 @@ string kindString( Kind k ){
 #include <cstdio>    // outbyte
 #include <cstdlib>   // exit
 #include <map>       // labelling
+#include <stdint.h>  // uint16_t
+//#include "dbgmsg.h"  // debugging - remove when submitting
+
 
 void outbyte (int i) {
    putchar (i>>24);
@@ -315,8 +318,8 @@ void asm_sub  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|34);}
 void asm_slt  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|42);}
 void asm_sltu (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|43);}
 
-void asm_beq (int s, int t, int i) {outbyte (0x10000000|(s<<21)|(t<<16)|(i>>8)|i);}
-void asm_bne (int s, int t, int i) {outbyte (0x14000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void asm_beq (int s, int t, uint16_t i) {outbyte (0x10000000|(s<<21)|(t<<16)|i);}
+void asm_bne (int s, int t, uint16_t i) {outbyte (0x14000000|(s<<21)|(t<<16)|i);}
 
 void asm_lis  (int d) {outbyte ((d<<11)|20);}
 void asm_mflo (int d) {outbyte ((d<<11)|18);}
@@ -327,8 +330,8 @@ void asm_multu (int s, int t) {outbyte ((s<<21)|(t<<16)|25);}
 void asm_div   (int s, int t) {outbyte ((s<<21)|(t<<16)|26);}
 void asm_divu  (int s, int t) {outbyte ((s<<21)|(t<<16)|27);}
 
-void asm_lw (int t, int i, int s) {outbyte (0x8c000000|(s<<21)|(t<<16)|(i>>8)|i);}
-void asm_sw (int t, int i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void asm_lw (int t, uint16_t i, int s) {outbyte (0x8c000000|(s<<21)|(t<<16)|i);}
+void asm_sw (int t, uint16_t i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|i);}
 
 
 
@@ -360,7 +363,7 @@ void processTokenDOTWORD (Token t) {
 bool check_reg (vector<vector<Token> > &tokLines, int line, int j) {
    if (tokLines[line].size() < 2) {return false;}
    Token tok1 = tokLines[line][j+1];
-   if (  tok1.kind == REGISTER ) {return true;}
+   if (  tok1.kind == REGISTER && tok1.toInt() >= 0 ) {return true;}
    return false;
 }
 
@@ -441,15 +444,15 @@ bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int li
 
 // true if label exists
 bool tokenLabelExists (map <string, int> &labelMap, Token tokenLabel) {
-   string trimmedLexeme = tokenLabel.lexeme.substr(0, tokenLabel.lexeme.length()-1);
-   map <string, int>::iterator it = labelMap.find(trimmedLexeme);
+//   DBGVAR (cout, tokenLabel.lexeme);
+   map <string, int>::iterator it = labelMap.find(tokenLabel.lexeme);
    if (it != labelMap.end()) {   return true;   }
    return false;
 }
 
 
 //======================================================================
-//======= A sample program demonstrating the use of the scanner. =======
+//======= CS241 MIPS Compiler, Author: Jason Sun                 =======
 //======================================================================
 
 int main() {
@@ -587,10 +590,12 @@ int main() {
             // jr, jalr
                if ((token.lexeme == "jr") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
+//                  DBGVAR (cout, d);
                   asm_jr (d);
                }
                if ((token.lexeme == "jalr") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
+//                  DBGVAR (cout, d);
                   asm_jalr (d);
                }
 
@@ -619,37 +624,6 @@ int main() {
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
                   asm_sltu (d, s, t);
-               }
-
-
-            // beq, bne
-               if (  ((token.lexeme == "bne") || (token.lexeme == "beq"))
-                     && (check_reg_comma_reg_comma_intHexintLabel (tokLines, line, j))
-                     ) {
-                  cout << "ding\n";
-                  int s = tokLines[line][j+1].toInt();
-                  int t = tokLines[line][j+3].toInt();
-                  int i;
-                  if (  (tokLines[line][j+5].lexeme == "label")
-                        && (tokenLabelExists (labelMap, tokLines[line][j+5]))    ) {
-                     // get label position
-                     cout << "aaaaa\n";
-                     Token labelToken = tokLines[line][j+5];
-                     string trimmedLexeme = labelToken.lexeme.substr(0, labelToken.lexeme.length()-1);
-                     map <string, int>::iterator it = labelMap.find(trimmedLexeme);
-                     i = it->second;
-                  } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
-                     i = tokLines[line][j+5].toInt();
-                  } else {
-                     cerr << "ERROR on beq or bne" << endl;
-                     exit (1);
-                  }
-
-                  if ( token.lexeme == "beq" ) {
-                     asm_beq (s, t, i);
-                  } else {
-                     asm_bne (s, t, i);
-                  }
                }
 
 
@@ -704,16 +678,40 @@ int main() {
                      asm_lw (t, i, s);
                }
 
+            
+            // beq, bne
+               if (  ((token.lexeme == "beq") || (token.lexeme == "bne"))
+                     && (check_reg_comma_reg_comma_intHexintLabel (tokLines, line, j))
+                     ) {
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt();
+                  int i;
+                  if (  (tokLines[line][j+5].kind == ID)
+                        && (tokenLabelExists (labelMap, tokLines[line][j+5]))    
+                        ) {
+                     // get label position
+                     map <string, int>::iterator it = labelMap.find(tokLines[line][j+5].lexeme);
+                     i = it->second - 1;
+                  } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
+                     i = tokLines[line][j+5].toInt();
+                  } else {
+                     cerr << "ERROR on beq or bne" << endl;
+//                     exit (1);
+                  }
+//                  DBGVAR (cout, s);
+//                  DBGVAR (cout, t);
+//                  DBGVAR (cout, i);                                    
+                  if ( token.lexeme == "beq" ) {
+                     asm_beq (s, t, i);
+                  } else {
+                     asm_bne (s, t, i);
+                  }
+               }
 
 
 
 
-
-            } else {
-//               cerr << "ERROR on labelNumber " << line <<
-//               " unrecognized token: " << token.lexeme << "  " <<
-//               kindString(token.kind) << " " << line << endl;
-            } // else
+            } 
          } // End for word in line
       } // End for line, Pass #2
 

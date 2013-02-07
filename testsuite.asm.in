@@ -1,4 +1,8 @@
+;; test suite
+llabel:
+bne $1, $2, llabel
 beq $1, $2, 0x123a
+bne $1, $2, label
 
 jr $31
 jalr $30
