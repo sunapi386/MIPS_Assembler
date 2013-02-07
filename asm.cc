@@ -450,139 +450,88 @@ bool tokenLabelExists (map <string, int> &labelMap, Token tokenLabel) {
    return false;
 }
 
+// displayLabels
+void displayLabels (map<string, int> &labelMap) {
+   for (map<string, int>::const_iterator it = labelMap.begin();
+   it != labelMap.end(); it++) {
+         cerr << it->first << " " << it->second << endl;
+   }
+}
 
 //======================================================================
-//======= CS241 MIPS Compiler, Author: Jason Sun                 =======
+//=======            Pass # 1                                    =======
 //======================================================================
+// goes through the code and see if the label isn't already defined 
+// then add a (label, line) entry on a map
+void pass1 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &labelNumber) {
+   for(unsigned line=0; line < tokLines.size(); line++ ) {
+      for(unsigned j=0; j < tokLines[line].size(); j++ ) {
 
-int main() {
-
-   try {
-      vector<string> srcLines;
-
-      // Read the entire input file, storing each line as a
-      // single string in the array srcLines.
-      while(true) {
-      string line;
-      getline(cin, line);
-      if(cin.fail()) break;
-      srcLines.push_back(line);
-      }
-
-      // Tokenize each line, storing the results in tokLines.
-      vector<vector<Token> > tokLines;
-
-      for(unsigned line = 0; line < srcLines.size(); line++) {
-      tokLines.push_back(scan(srcLines[line]));
-      }
-
-      // additionally keep track of label and line it points to
-      int labelNumber = 0;
-      map <string, int> labelMap;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      // A3P5: Pass #1, grab all the labels into map
-      for(unsigned line=0; line < tokLines.size(); line++ ) {
-         for(unsigned j=0; j < tokLines[line].size(); j++ ) {
-
-            Token token = tokLines[line][j];
-            if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
-               Token nextToken = tokLines[line][j+1];
-               map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
-               if ((nextToken.kind == ID) && (it != labelMap.end())) {
-                  labelNumber++;
-               }
-               else if (nextToken.kind == INT
-               || nextToken.kind == HEXINT
-               || nextToken.kind == ID) {
-                  labelNumber++;
-               }
+         Token token = tokLines[line][j];
+         if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
+            Token nextToken = tokLines[line][j+1];
+            map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
+            if ((nextToken.kind == ID) && (it != labelMap.end())) {
+               labelNumber++;
             }
-
-            token = tokLines[line][j];
-            if (token.kind == LABEL) {
-               string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
-               map <string, int>::iterator it = labelMap.find(trimmedLexeme);
-               if ((it == labelMap.end()) &&
-               (((j >= 1) && (tokLines[line][j-1].kind == LABEL)) || (j == 0))) {
-                     labelMap[trimmedLexeme] = labelNumber * 4;
-               } else {
-                  cerr << "ERROR on labelNumber" << line << " "
-                  << token.lexeme << " is already defined with value: "
-                  << it->second << endl;
-                  exit (1);
-               }
-            } // if (LABEL)
+            else if (nextToken.kind == INT
+            || nextToken.kind == HEXINT
+            || nextToken.kind == ID) {
+               labelNumber++;
+            }
          }
-      } // End Pass #1
 
-//      // After Pass #1, display labels
-//      for (map<string, int>::const_iterator it = labelMap.begin();
-//      it != labelMap.end(); it++) {
-//            cerr << it->first << " " << it->second << endl;
-//      }
+         token = tokLines[line][j];
+         if (token.kind == LABEL) {
+            string trimmedLexeme = token.lexeme.substr(0, token.lexeme.length()-1);
+            map <string, int>::iterator it = labelMap.find(trimmedLexeme);
+            if ((it == labelMap.end()) &&
+            (((j >= 1) && (tokLines[line][j-1].kind == LABEL)) || (j == 0))) {
+                  labelMap[trimmedLexeme] = labelNumber * 4;
+            } else {
+               cerr << "ERROR on labelNumber" << line << " "
+               << token.lexeme << " is already defined with value: "
+               << it->second << endl;
+               exit (1);
+            }
+         } // if (LABEL)
+      }
+   } // End Pass #1
+}
 
-
-
-
-
-
-
-
-      // Pass #2
+//======================================================================
+//=======            Pass # 2                                    =======
+//======================================================================
+// 
+void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &labelNumber) {      
       for(unsigned line=0; line < tokLines.size(); line++ ) {
          for(unsigned j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
 
-            // Looks for .word with another operand behind it
-             if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
+            // .word
+            if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
                Token nextToken = tokLines[line][j+1];
                if (nextToken.kind == INT || nextToken.kind == HEXINT) {
                   int value = nextToken.toInt();
                   outbyte (value);
                   j++;
-
-               } else
-
-               if (nextToken.kind == ID) { // A3P5: labels as operands
+               } else if (nextToken.kind == ID) { // A3P5: labels as operands
                   map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
                   if (it == labelMap.end()) {
-                     cerr << "ERROR: Parse error in line: " << line <<
-                     ": No such label: '" << nextToken.lexeme << endl;
-                     exit (1);
-                  } else {
-                     // since label exists, dereference address and print to binary
-                     int value = labelMap[nextToken.lexeme];
-                     outbyte (value);
-                     j++;
-                  }
-
-
-               }
-
-               else {
-                  cerr << "ERROR on labelNumber " << line <<
-                  " expecting INT or HEXINT" << endl;
+                  cerr << "ERROR: Parse error in line: " << line <<
+                  ": No such label: '" << nextToken.lexeme << endl;
                   exit (1);
+               } else {
+                  // since label exists, dereference address and print to binary
+                  int value = labelMap[nextToken.lexeme];
+                  outbyte (value);
+                  j++;
+                  }
+               } else {
+               cerr << "ERROR Improper .word on (" << line <<
+               "), expecting INT or HEXINT or ID" << endl;
                }
-            }  // END IF .word token
-
-
-
-
+            }  // END .word
 
 
             else if (token.kind == ID) {
@@ -691,7 +640,7 @@ int main() {
                         ) {
                      // get label position
                      map <string, int>::iterator it = labelMap.find(tokLines[line][j+5].lexeme);
-                     i = it->second - 1;
+                     i = (it->second / 4) - line;
                   } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
                      i = tokLines[line][j+5].toInt();
                   } else {
@@ -707,36 +656,55 @@ int main() {
                      asm_bne (s, t, i);
                   }
                }
-
-
-
-
             } 
-         } // End for word in line
-      } // End for line, Pass #2
+         } // End for loop of (word) in each (line)
+      } // End for loop of (line)
+} // End of Pass #2
 
 
-//      // A3P4:
-//      // finished iterating the MIPS code, print out labels
-//      for (map<string, int>::const_iterator it = labelMap.begin();
-//      it != labelMap.end(); it++) {
-//            cerr << it->first << " " << it->second << endl;
-//      }
+//======================================================================
+//======= CS241 MIPS Compiler: Main program  Author: Jason Sun   =======
+//======================================================================
 
+int main() {
 
+   try {
+      vector<string> srcLines;
+
+      // Read the entire input file, storing each line as a
+      // single string in the array srcLines.
+      while(true) {
+      string line;
+      getline(cin, line);
+      if(cin.fail()) break;
+      srcLines.push_back(line);
+      }
+
+      // Tokenize each line, storing the results in tokLines.
+      vector<vector<Token> > tokLines;
+      for(unsigned line = 0; line < srcLines.size(); line++) {
+      tokLines.push_back(scan(srcLines[line]));
+      }
+
+      // containers to keep track of label and line association
+      int labelNumber = 0;
+      map <string, int> labelMap;
+
+      // Pass #1, grab all the labels into map
+      pass1 (tokLines, labelMap, labelNumber);
+
+      // Print the map - a helper procedure for debugging
+      displayLabels (labelMap);
+
+      // Pass #2, translate and output into machine binary
+      pass2 (tokLines, labelMap, labelNumber);
 
    } catch(string msg) {
      cerr << "ERROR " << msg << endl;
      exit (1);
    }
-
    return 0;
 }
-
-
-
-
-
 
 
 

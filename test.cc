@@ -20,10 +20,7 @@ void asm_lw (int t, uint16_t i, int s) {outbyte (0x8c000000|(s<<21)|(t<<16)|i);}
 void asm_sw (int t, uint16_t i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|i);}
 
 int main() {
-   asm_beq (1,2,-123);
-   asm_bne (1,2,-123);
-   asm_lw (1,-123,1);
-   asm_sw (1,-123,1);
+   asm_bne (1,2,-2);
 }
 
 
