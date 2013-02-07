@@ -6,9 +6,11 @@ slt $5, $6, $1
 sltu $3, $4, $5
 beq $1, $2, 3
 bne $1, $2, 3
+
 lis $5
 mflo $3
 mfhi $2
+
 mult $2, $3
 multu $2, $3
 div $4, $1

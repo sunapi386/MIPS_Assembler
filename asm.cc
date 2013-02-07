@@ -354,6 +354,33 @@ void processTokenDOTWORD (Token t) {
 //}
 
 
+
+// true if current line has a sequence of:
+// REGISTER
+bool check_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < 2) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   if (  tok1.kind == REGISTER ) {return true;}
+   return false;
+}
+
+
+// true if current line has a sequence of:
+// REGISTER, COMMA, REGISTER
+bool check_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < 4) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == REGISTER )    {  return true;   }
+   return false;
+}
+
+
+
 // true if the current line has a sequence of:
 // REGISTER, COMMA, INT, LPARENS, REGISTER, RPARENS
 // requires at least 7 tokens on the line for a valid lw or sw instruction
@@ -375,6 +402,7 @@ bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int li
 
    return false;
 }
+
 
 
 
@@ -511,22 +539,58 @@ int main() {
 
 
 
-            // sw and lw instructions
+
             else if (token.kind == ID) {
-               if (token.lexeme == "sw") {
-                  if (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j)) {
-                     int t =  tokLines[line][j+1].toInt();
-                     int i =  tokLines[line][j+3].toInt();
-                     int s =  tokLines[line][j+5].toInt();
-                     asm_sw (t, i, s);
-                  }
-               } else if (token.lexeme == "lw") {
-                  if (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j)) {
+            
+            //  lis, mflo, mfhi
+               if ((token.lexeme == "lis") && (check_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  asm_lis (d);
+               }
+               if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {           
+                  int d = tokLines[line][j+1].toInt();
+                  asm_mflo (d);    
+               }
+               if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {            
+                  int d = tokLines[line][j+1].toInt();
+                  asm_mfhi (d);               
+               }
+            
+            
+            // mult, multu, div, divu
+               if ((token.lexeme == "mult") && (check_reg_comma_reg (tokLines, line, j))) {
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt();                  
+                  asm_mult (s, t);
+               }
+               if ((token.lexeme == "multu") && (check_reg_comma_reg (tokLines, line, j))) {
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt();                  
+                  asm_multu (s, t);
+               }
+               if ((token.lexeme == "div") && (check_reg_comma_reg (tokLines, line, j))) {
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt(); 
+                  asm_div (s, t);
+               }
+               if ((token.lexeme == "divu")  && (check_reg_comma_reg (tokLines, line, j))) {
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt(); 
+                  asm_divu (s, t);
+               }
+
+
+            // sw, lw
+               if ((token.lexeme == "sw") && (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j))) {
+                  int t =  tokLines[line][j+1].toInt();
+                  int i =  tokLines[line][j+3].toInt();
+                  int s =  tokLines[line][j+5].toInt();
+                  asm_sw (t, i, s);
+               } else if ((token.lexeme == "lw") && (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j))) {
                      int t =  tokLines[line][j+1].toInt();
                      int i =  tokLines[line][j+3].toInt();
                      int s =  tokLines[line][j+5].toInt();
                      asm_lw (t, i, s);
-                  }
                }
 
 
