@@ -37,20 +37,6 @@ void asm_sw (int t, int i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|(i>>8)|i)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main() {
    asm_jr(31);
    asm_jalr(30);
@@ -71,5 +57,23 @@ int main() {
    asm_sw (4, 1, 2);
 }
 
+
+//jr $31
+//jalr $30
+//add $1, $2, $3
+//sub $3, $2, $1
+//slt $5, $6, $1
+//sltu $3, $4, $5
+//beq $1, $2, 3
+//bne $1, $2, 3
+//lis $5
+//mflo $3
+//mfhi $2
+//mult $2, $3
+//multu $2, $3
+//div $4, $1
+//divu $4, $1
+//lw $4, 1($2)
+//sw $4, 1($2)
 
 

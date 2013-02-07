@@ -307,6 +307,31 @@ void outbyte (int i) {
    putchar (i);
 }
 
+void asm_jr (int s) {outbyte ((s<<21)|8);}
+void asm_jalr (int s) {outbyte ((s<<21)|9);}
+
+void asm_add  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|32);}
+void asm_sub  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|34);}
+void asm_slt  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|42);}
+void asm_sltu (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|43);}
+
+void beq (int s, int t, int i) {outbyte (0x10000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void bne (int s, int t, int i) {outbyte (0x14000000|(s<<21)|(t<<16)|(i>>8)|i);}
+
+void asm_lis  (int d) {outbyte ((d<<11)|20);}
+void asm_mflo (int d) {outbyte ((d<<11)|18);}
+void asm_mfhi (int d) {outbyte ((d<<11)|16);}
+
+void asm_mult  (int s, int t) {outbyte ((s<<21)|(t<<16)|24);}
+void asm_multu (int s, int t) {outbyte ((s<<21)|(t<<16)|25);}
+void asm_div   (int s, int t) {outbyte ((s<<21)|(t<<16)|26);}
+void asm_divu  (int s, int t) {outbyte ((s<<21)|(t<<16)|27);}
+
+void asm_lw (int t, int i, int s) {outbyte (0x8c000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void asm_sw (int t, int i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|(i>>8)|i);}
+
+
+
 void processTokenLABEL (Token t) {
    cerr << "not implemented yet\n";
 //   labelMap[token.lexeme] = labelNumber;
@@ -417,11 +442,14 @@ int main() {
 
 
 
+
+
       // Pass #2
-      // Looks for .word with another operand behind it
       for(int line=0; line < tokLines.size(); line++ ) {
          for(int j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
+
+            // Looks for .word with another operand behind it
              if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
                Token nextToken = tokLines[line][j+1];
                if (nextToken.kind == INT || nextToken.kind == HEXINT) {
@@ -434,15 +462,14 @@ int main() {
                if (nextToken.kind == ID) { // A3P5: labels as operands
                   map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
                   if (it == labelMap.end()) {
-                     cerr << "ERROR on labelNumber " << line <<
-                     ": label '" << nextToken.lexeme << "' was not found" << endl;
+                     cerr << "ERROR: Parse error in line: " << line <<
+                     ": No such label: '" << nextToken.lexeme << endl;
                      exit (1);
                   } else {
                      // since label exists, dereference address and print to binary
                      int value = labelMap[nextToken.lexeme];
                      outbyte (value);
                      j++;
-//                        cout << "dereference: " << nextToken.lexeme << " " << value << endl;
                   }
 
 
@@ -452,7 +479,19 @@ int main() {
                   cerr << "ERROR on labelNumber " << line <<
                   " expecting INT or HEXINT" << endl;
                   exit (1);
-               } // else
+               }
+            }  // END IF .word token
+            
+            
+            
+            
+
+            // sw and lw instructions
+            else if (token.kind == ID) {
+            
+            
+            
+            
             } else {
 //               cerr << "ERROR on labelNumber " << line <<
 //               " unrecognized token: " << token.lexeme << "  " <<
@@ -478,4 +517,12 @@ int main() {
 
    return 0;
 }
+
+
+
+
+
+
+
+
 
