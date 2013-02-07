@@ -432,7 +432,7 @@ bool check_reg_comma_reg_comma_intHexintLabel (vector<vector<Token> > &tokLines,
 // true if the current line has a sequence of:
 // REGISTER, COMMA, INT, LPARENS, REGISTER, RPARENS
 // requires at least 7 tokens on the line for a valid lw or sw instruction
-bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int line, int j) {
+bool check_reg_comma_intHex_lpar_reg_rpar (vector<vector<Token> > &tokLines, int line, int j) {
    if (tokLines[line].size() < 7) {return false;}
    Token tok1 = tokLines[line][j+1];
    Token tok2 = tokLines[line][j+2];
@@ -443,7 +443,7 @@ bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int li
    if (
          tok1.kind == REGISTER &&
          tok2.kind == COMMA &&
-         tok3.kind == INT &&
+         ( tok3.kind == INT || tok3.kind == HEXINT ) &&
          tok4.kind == LPAREN  &&
          tok5.kind == REGISTER &&
          tok6.kind == RPAREN )   {  return true;  }
@@ -540,14 +540,15 @@ void pass1 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                {labelNumber++;}
 
             if  (    ((token.lexeme == "sw") || (token.lexeme == "lw" ))  &&
-                     (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j))  )
+                     (check_reg_comma_intHex_lpar_reg_rpar (tokLines, line, j))  )
                {labelNumber++;}
 
          }
       }
-   } // End Pass #1
+   }
 }
-
+// End Pass #1
+//^====================================================================^
 
 
 
@@ -556,6 +557,7 @@ void pass1 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
 //======================================================================
 //
 void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &labelNumber) {
+      int validLines = 0;  // for beq and bne label counting 
       for(unsigned line=0; line < tokLines.size(); line++ ) {
          for(unsigned j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
@@ -566,7 +568,8 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                if (nextToken.kind == INT || nextToken.kind == HEXINT) {
                   int value = nextToken.toInt();
                   outbyte (value);
-                  j++;
+                  j += 1;
+                  validLines++;
                } else if (nextToken.kind == ID) { // A3P5: labels as operands
                   map <string, int>::iterator it = labelMap.find(nextToken.lexeme);
                   if (it == labelMap.end()) {
@@ -577,7 +580,8 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   // since label exists, dereference address and print to binary
                   int value = labelMap[nextToken.lexeme];
                   outbyte (value);
-                  j++;
+                  j += 1;
+                  validLines++;
                   }
                } else {
                cerr << "ERROR Improper .word on (" << line <<
@@ -593,11 +597,15 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   int d = tokLines[line][j+1].toInt();
 //                  DBGVAR (cout, d);
                   asm_jr (d);
+                  j += 1;
+                  validLines++;
                }
                if ((token.lexeme == "jalr") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
 //                  DBGVAR (cout, d);
                   asm_jalr (d);
+                  validLines++;
+                  j += 1;
                }
             // End jr, jalr
 
@@ -613,7 +621,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                         ) {
                      // get label position
                      map <string, int>::iterator it = labelMap.find(tokLines[line][j+5].lexeme);
-                     i = (it->second / 4) - line;
+                     i = (it->second / 4) - validLines - 1;
                   } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
                      i = tokLines[line][j+5].toInt();
                   } else {
@@ -628,6 +636,8 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   } else {
                      asm_bne (s, t, i);
                   }
+                  j += 6;
+                  validLines++;
                }
             // End beq, bne
 
@@ -638,24 +648,32 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
                   asm_add (d, s, t);
+                  j += 6;
+                  validLines++;
                }
                if ((token.lexeme == "sub") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
                   asm_sub (d, s, t);
+                  j += 6;
+                  validLines++;
                }
                if ((token.lexeme == "slt") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
                   asm_slt (d, s, t);
+                  j += 6;
+                  validLines++;
                }
                if ((token.lexeme == "sltu")  && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
                   asm_sltu (d, s, t);
+                  j += 6;
+                  validLines++;
                }
             // End add, sub, slt, sltu
 
@@ -663,14 +681,20 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                if ((token.lexeme == "lis") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_lis (d);
+                  j += 2;
+                  validLines++;
                }
                if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_mflo (d);
+                  j += 2;
+                  validLines++;
                }
                if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_mfhi (d);
+                  j += 2;
+                  validLines++;
                }
             // End lis, mflo, mfhi
 
@@ -679,43 +703,69 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_mult (s, t);
+                  j += 4;
+                  validLines++;
                }
                if ((token.lexeme == "multu") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_multu (s, t);
+                  j += 4;
+                  validLines++;
                }
                if ((token.lexeme == "div") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_div (s, t);
+                  j += 4;
+                  validLines++;
                }
                if ((token.lexeme == "divu")  && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_divu (s, t);
+                  j += 4;
+                  validLines++;
                }
             // End mult, multu, div, divu
 
             // sw, lw
-               if ((token.lexeme == "sw") && (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j))) {
+               if ((token.lexeme == "sw") && (check_reg_comma_intHex_lpar_reg_rpar (tokLines, line, j))) {
                   int t =  tokLines[line][j+1].toInt();
                   int i =  tokLines[line][j+3].toInt();
                   int s =  tokLines[line][j+5].toInt();
                   asm_sw (t, i, s);
-               } else if ((token.lexeme == "lw") && (check_reg_comma_int_lpar_reg_rpar (tokLines, line, j))) {
-                     int t =  tokLines[line][j+1].toInt();
-                     int i =  tokLines[line][j+3].toInt();
-                     int s =  tokLines[line][j+5].toInt();
-                     asm_lw (t, i, s);
+                  j += 6;
+                  validLines++;
+               } else if ((token.lexeme == "lw") && (check_reg_comma_intHex_lpar_reg_rpar (tokLines, line, j))) {
+                  int t =  tokLines[line][j+1].toInt();
+                  int i =  tokLines[line][j+3].toInt();
+                  int s =  tokLines[line][j+5].toInt();
+//               DBGVAR (cout, s);
+//               DBGVAR (cout, t);
+//               DBGVAR (cout, i);
+                  asm_lw (t, i, s);
+                  j += 6;
+                  validLines++;
                }
             // End sw, lw
 
 
-            }
+            } // End token.kind == ID
+//            else {
+//               cerr << "ERROR pass2 " << token.lexeme << endl;
+//            }
          } // End for loop of (word) in each (line)
       } // End for loop of (line)
-} // End of Pass #2
+}
+// End Pass #2
+//^====================================================================^
+
+
+
+
+
+
 
 
 //======================================================================
@@ -750,18 +800,20 @@ int main() {
       pass1 (tokLines, labelMap, labelNumber);
 
       // Print the map - a helper procedure for debugging
-      displayLabels (labelMap);
+//      displayLabels (labelMap);
 
       // Pass #2, translate and output into machine binary
       pass2 (tokLines, labelMap, labelNumber);
 
    } catch(string msg) {
      cerr << "ERROR " << msg << endl;
-     exit (1);
+//     exit (1);  // comment out to supress errors
    }
    return 0;
 }
 
+// End main
+//^====================================================================^
 
 
 

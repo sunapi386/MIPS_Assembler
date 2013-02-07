@@ -1,9 +1,5 @@
-start:
-   .word 0
-new: 
-   .word 0
-new1:
-   bne $1, $2, start
-new2:
-   bne $1, $2, end
-end:
+llabel: bne $0, $0, llabel
+a: bne $0, $0, a
+bne $0, $0, e
+e:
+
