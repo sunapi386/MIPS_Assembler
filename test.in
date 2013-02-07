@@ -1,5 +1,5 @@
-llabel: bne $0, $0, llabel
-a: bne $0, $0, a
-bne $0, $0, e
-e:
-
+lw add $1, $2, $3
+sw $3, 0xfffffffc($30)
+beq $0, $0, loop
+bne $19, $20, 32768
+jr $1, $2, $3

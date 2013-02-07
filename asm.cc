@@ -625,8 +625,8 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
                      i = tokLines[line][j+5].toInt();
                   } else {
-                     cerr << "ERROR on beq or bne" << endl;
-//                     exit (1);
+                     cerr << "ERROR on line" << line << endl;
+                     exit (1);
                   }
 //                  DBGVAR (cout, s);
 //                  DBGVAR (cout, t);
@@ -655,6 +655,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
+                  throw 303;
                   asm_sub (d, s, t);
                   j += 6;
                   validLines++;
@@ -749,7 +750,6 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   validLines++;
                }
             // End sw, lw
-
 
             } // End token.kind == ID
 //            else {

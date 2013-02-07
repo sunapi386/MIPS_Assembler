@@ -1,0 +1,7 @@
+;; fix me!!
+sub $3, $2, 1
+slt $5, $7
+mult $2 $4
+div $1, 0xff
+$3 lis
+
