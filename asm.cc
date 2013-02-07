@@ -128,7 +128,7 @@ State delta[ST_WHITESPACE+1][256];
 #define oneToNine  "123456789"
 
 void setT(State from, string chars, State to) {
-    for(int i = 0; i < chars.length(); i++ ) delta[from][chars[i]] = to;
+    for(unsigned i = 0; i < chars.length(); i++ ) delta[from][chars[i]] = to;
 }
 
 void initT(){
@@ -315,8 +315,8 @@ void asm_sub  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|34);}
 void asm_slt  (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|42);}
 void asm_sltu (int d, int s, int t) {outbyte ((s<<21)|(t<<16)|(d<<11)|43);}
 
-void beq (int s, int t, int i) {outbyte (0x10000000|(s<<21)|(t<<16)|(i>>8)|i);}
-void bne (int s, int t, int i) {outbyte (0x14000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void asm_beq (int s, int t, int i) {outbyte (0x10000000|(s<<21)|(t<<16)|(i>>8)|i);}
+void asm_bne (int s, int t, int i) {outbyte (0x14000000|(s<<21)|(t<<16)|(i>>8)|i);}
 
 void asm_lis  (int d) {outbyte ((d<<11)|20);}
 void asm_mflo (int d) {outbyte ((d<<11)|18);}
@@ -379,6 +379,42 @@ bool check_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
    return false;
 }
 
+// true if current line has a sequence of:
+//  REGISTER, COMMA, REGISTER, COMMA, REGISTER
+bool check_reg_comma_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < 6) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == REGISTER &&
+         tok4.kind == COMMA &&
+         tok5.kind == REGISTER     )    {  return true;   }
+   return false;
+}
+
+// true if the current line has a sequence of:
+// REGISTER, COMMA, REGISTER, COMMA, INT or HEXINT
+bool check_reg_comma_reg_comma_intHexintLabel (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < 6) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == REGISTER &&
+         tok4.kind == COMMA  &&
+         (tok5.kind == INT || tok5.kind == HEXINT || tok5.kind == ID) )   {  return true;  }
+
+   return false;
+}
 
 
 // true if the current line has a sequence of:
@@ -403,7 +439,13 @@ bool check_reg_comma_int_lpar_reg_rpar (vector<vector<Token> > &tokLines, int li
    return false;
 }
 
-
+// true if label exists
+bool tokenLabelExists (map <string, int> &labelMap, Token tokenLabel) {
+   string trimmedLexeme = tokenLabel.lexeme.substr(0, tokenLabel.lexeme.length()-1);
+   map <string, int>::iterator it = labelMap.find(trimmedLexeme);
+   if (it != labelMap.end()) {   return true;   }
+   return false;
+}
 
 
 //======================================================================
@@ -427,7 +469,7 @@ int main() {
       // Tokenize each line, storing the results in tokLines.
       vector<vector<Token> > tokLines;
 
-      for(int line = 0; line < srcLines.size(); line++) {
+      for(unsigned line = 0; line < srcLines.size(); line++) {
       tokLines.push_back(scan(srcLines[line]));
       }
 
@@ -450,8 +492,8 @@ int main() {
 
 
       // A3P5: Pass #1, grab all the labels into map
-      for(int line=0; line < tokLines.size(); line++ ) {
-         for(int j=0; j < tokLines[line].size(); j++ ) {
+      for(unsigned line=0; line < tokLines.size(); line++ ) {
+         for(unsigned j=0; j < tokLines[line].size(); j++ ) {
 
             Token token = tokLines[line][j];
             if ((token.kind == DOTWORD) && (j+1 < tokLines[line].size())) {
@@ -498,8 +540,8 @@ int main() {
 
 
       // Pass #2
-      for(int line=0; line < tokLines.size(); line++ ) {
-         for(int j=0; j < tokLines[line].size(); j++ ) {
+      for(unsigned line=0; line < tokLines.size(); line++ ) {
+         for(unsigned j=0; j < tokLines[line].size(); j++ ) {
             Token token = tokLines[line][j];
 
             // Looks for .word with another operand behind it
@@ -541,41 +583,110 @@ int main() {
 
 
             else if (token.kind == ID) {
-            
+
+            // jr, jalr
+               if ((token.lexeme == "jr") && (check_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  asm_jr (d);
+               }
+               if ((token.lexeme == "jalr") && (check_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  asm_jalr (d);
+               }
+
+
+            // add, sub, slt, sltu
+               if ((token.lexeme == "add") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  int s = tokLines[line][j+3].toInt();
+                  int t = tokLines[line][j+5].toInt();
+                  asm_add (d, s, t);
+               }
+               if ((token.lexeme == "sub") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  int s = tokLines[line][j+3].toInt();
+                  int t = tokLines[line][j+5].toInt();
+                  asm_sub (d, s, t);
+               }
+               if ((token.lexeme == "slt") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  int s = tokLines[line][j+3].toInt();
+                  int t = tokLines[line][j+5].toInt();
+                  asm_slt (d, s, t);
+               }
+               if ((token.lexeme == "sltu")  && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+                  int d = tokLines[line][j+1].toInt();
+                  int s = tokLines[line][j+3].toInt();
+                  int t = tokLines[line][j+5].toInt();
+                  asm_sltu (d, s, t);
+               }
+
+
+            // beq, bne
+               if (  ((token.lexeme == "bne") || (token.lexeme == "beq"))
+                     && (check_reg_comma_reg_comma_intHexintLabel (tokLines, line, j))
+                     ) {
+                  cout << "ding\n";
+                  int s = tokLines[line][j+1].toInt();
+                  int t = tokLines[line][j+3].toInt();
+                  int i;
+                  if (  (tokLines[line][j+5].lexeme == "label")
+                        && (tokenLabelExists (labelMap, tokLines[line][j+5]))    ) {
+                     // get label position
+                     cout << "aaaaa\n";
+                     Token labelToken = tokLines[line][j+5];
+                     string trimmedLexeme = labelToken.lexeme.substr(0, labelToken.lexeme.length()-1);
+                     map <string, int>::iterator it = labelMap.find(trimmedLexeme);
+                     i = it->second;
+                  } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
+                     i = tokLines[line][j+5].toInt();
+                  } else {
+                     cerr << "ERROR on beq or bne" << endl;
+                     exit (1);
+                  }
+
+                  if ( token.lexeme == "beq" ) {
+                     asm_beq (s, t, i);
+                  } else {
+                     asm_bne (s, t, i);
+                  }
+               }
+
+
             //  lis, mflo, mfhi
                if ((token.lexeme == "lis") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_lis (d);
                }
-               if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {           
+               if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
-                  asm_mflo (d);    
+                  asm_mflo (d);
                }
-               if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {            
+               if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
-                  asm_mfhi (d);               
+                  asm_mfhi (d);
                }
-            
-            
+
+
             // mult, multu, div, divu
                if ((token.lexeme == "mult") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
-                  int t = tokLines[line][j+3].toInt();                  
+                  int t = tokLines[line][j+3].toInt();
                   asm_mult (s, t);
                }
                if ((token.lexeme == "multu") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
-                  int t = tokLines[line][j+3].toInt();                  
+                  int t = tokLines[line][j+3].toInt();
                   asm_multu (s, t);
                }
                if ((token.lexeme == "div") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
-                  int t = tokLines[line][j+3].toInt(); 
+                  int t = tokLines[line][j+3].toInt();
                   asm_div (s, t);
                }
                if ((token.lexeme == "divu")  && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
-                  int t = tokLines[line][j+3].toInt(); 
+                  int t = tokLines[line][j+3].toInt();
                   asm_divu (s, t);
                }
 
