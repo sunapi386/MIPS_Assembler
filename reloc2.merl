@@ -1,0 +1,24 @@
+; .merl version of relocation example
+; merl = mips executable relocatable linkable
+
+beq $0, $0, 2 ; skip over header
+.word endmodule
+.word endcode
+   
+         lis $3
+         .word 0xabc
+         lis $1
+reloc1:  .word A
+         jr $1
+         B:
+         jr $31
+         A:
+         beq $0, $0, B
+reloc2:  .word B
+
+endcode:
+.word 1           ; relocate
+.word reloc1      ; location
+.word 1           ; relocate
+.word reloc2      ; location
+endmodule:

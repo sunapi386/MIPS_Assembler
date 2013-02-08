@@ -6,21 +6,20 @@
 
 using namespace std;
 
-void outbyte (int i) {
-   putchar (i>>24);
-   putchar (i>>16);
-   putchar (i>>8);
-   putchar (i);
+int x = 32769;
+
+bool inRange16signed (int x) {
+   if (x >= -32767 && x <= 32767) {return true;}
+   return false;
 }
 
-
-void asm_beq (int s, int t, uint16_t i) {outbyte (0x10000000|(s<<21)|(t<<16)|i);}
-void asm_bne (int s, int t, uint16_t i) {outbyte (0x14000000|(s<<21)|(t<<16)|i);}
-void asm_lw (int t, uint16_t i, int s) {outbyte (0x8c000000|(s<<21)|(t<<16)|i);}
-void asm_sw (int t, uint16_t i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|i);}
-
 int main() {
-   asm_lw (0,0xffff,0);
+   if (inRange16signed(x)) {
+      cout << "In range \n";
+   } else {
+      cout << "Not in range\n";
+   }
+   
 }
 
 

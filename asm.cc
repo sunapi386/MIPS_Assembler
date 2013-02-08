@@ -340,121 +340,10 @@ void asm_sw (int t, uint16_t i, int s) {outbyte (0xac000000|(s<<21)|(t<<16)|i);}
 
 
 
-void processTokenLABEL (Token t) {
-   cerr << "not implemented yet\n";
-//   labelMap[token.lexeme] = labelNumber;
-//   labelNumber++;
-}
-
-void processTokenDOTWORD (Token t) {
-   cerr << "not implemented yet\n";
-}
-
-//bool labelExists (string label) {
-//   map <string, int>::iterator it = labelMap.find(label);
-//   return it != labelMap.end();
-//}
-
-// labelAdd: not in use
-//void labelAdd (string label, int labelNumber, map <string, int> &labelMap) {
-//   string trimmedLexeme = label.substr(0, label.length()-1);
-//   labelMap[trimmedLexeme] = labelNumber * 4;
-//}
-
-
-
 
 //======================================================================
-//=======            Check procedures                            =======
+//=======            Checks                                      =======
 //======================================================================
-
-// true if current line has a sequence of:
-// REGISTER
-bool check_reg (vector<vector<Token> > &tokLines, int line, int j) {
-   if (tokLines[line].size() < 2) {return false;}
-   Token tok1 = tokLines[line][j+1];
-   if (  tok1.kind == REGISTER && tok1.toInt() >= 0 ) {return true;}
-   return false;
-}
-
-// true if current line has a sequence of:
-// REGISTER, COMMA, REGISTER
-bool check_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
-   if (tokLines[line].size() < 4) {return false;}
-   Token tok1 = tokLines[line][j+1];
-   Token tok2 = tokLines[line][j+2];
-   Token tok3 = tokLines[line][j+3];
-   if (
-         tok1.kind == REGISTER &&
-         tok2.kind == COMMA &&
-         tok3.kind == REGISTER )    {  return true;   }
-   return false;
-}
-
-// true if current line has a sequence of:
-//  REGISTER, COMMA, REGISTER, COMMA, REGISTER
-bool check_reg_comma_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
-   if (tokLines[line].size() < 6) {return false;}
-   Token tok1 = tokLines[line][j+1];
-   Token tok2 = tokLines[line][j+2];
-   Token tok3 = tokLines[line][j+3];
-   Token tok4 = tokLines[line][j+4];
-   Token tok5 = tokLines[line][j+5];
-   if (
-         tok1.kind == REGISTER &&
-         tok2.kind == COMMA &&
-         tok3.kind == REGISTER &&
-         tok4.kind == COMMA &&
-         tok5.kind == REGISTER     )    {  return true;   }
-   return false;
-}
-
-// true if the current line has a sequence of:
-// REGISTER, COMMA, REGISTER, COMMA, INT or HEXINT
-bool check_reg_comma_reg_comma_intHexintLabel (vector<vector<Token> > &tokLines, int line, int j) {
-   if (tokLines[line].size() < 6) {return false;}
-   Token tok1 = tokLines[line][j+1];
-   Token tok2 = tokLines[line][j+2];
-   Token tok3 = tokLines[line][j+3];
-   Token tok4 = tokLines[line][j+4];
-   Token tok5 = tokLines[line][j+5];
-   if (
-         tok1.kind == REGISTER &&
-         tok2.kind == COMMA &&
-         tok3.kind == REGISTER &&
-         tok4.kind == COMMA  &&
-         (tok5.kind == INT || tok5.kind == HEXINT || tok5.kind == ID) )   {  return true;  }
-
-   return false;
-}
-
-
-// true if the current line has a sequence of:
-// REGISTER, COMMA, INT, LPARENS, REGISTER, RPARENS
-// requires at least 7 tokens on the line for a valid lw or sw instruction
-bool check_reg_comma_intHex_lpar_reg_rpar (vector<vector<Token> > &tokLines, int line, int j) {
-   if (tokLines[line].size() < 7) {return false;}
-   Token tok1 = tokLines[line][j+1];
-   Token tok2 = tokLines[line][j+2];
-   Token tok3 = tokLines[line][j+3];
-   Token tok4 = tokLines[line][j+4];
-   Token tok5 = tokLines[line][j+5];
-   Token tok6 = tokLines[line][j+6];
-   if (
-         tok1.kind == REGISTER &&
-         tok2.kind == COMMA &&
-         ( tok3.kind == INT || tok3.kind == HEXINT ) &&
-         tok4.kind == LPAREN  &&
-         tok5.kind == REGISTER &&
-         tok6.kind == RPAREN )   {  return true;  }
-
-   return false;
-}
-
-// Check procedures
-//^====================================================================^
-
-
 
 // true if label exists
 bool tokenLabelExists (map <string, int> &labelMap, Token tokenLabel) {
@@ -472,6 +361,108 @@ void displayLabels (map<string, int> &labelMap) {
    }
 }
 
+bool inRange16signed (int x) {
+   if (x >= -32767 && x <= 32767) {return true;}
+   return false;
+}
+
+
+
+// true if current line has a sequence of:
+// REGISTER
+// used in jr, jalr, lis, mflo, mfhi
+bool check_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < j + 2) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   if (  tok1.kind == REGISTER && inRange16signed (tok1.toInt()) ) {return true;}
+   return false;
+}
+
+// true if current line has a sequence of:
+// REGISTER, COMMA, REGISTER
+// used in mult, multu, div, divu
+bool check_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < j + 4) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == REGISTER )    {  return true;   }
+   return false;
+}
+
+// true if current line has a sequence of:
+// REGISTER, COMMA, REGISTER, COMMA, REGISTER
+// used in add, sub, slt, sltu
+bool check_reg_comma_reg_comma_reg (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < j + 6) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   if (
+         (tok1.kind == REGISTER && tok1.toInt() >= 0 && tok1.toInt() <= 31) &&
+         tok2.kind == COMMA &&
+         (tok3.kind == REGISTER && tok3.toInt() >= 0 && tok3.toInt() <= 31) &&
+         tok4.kind == COMMA &&
+         (tok5.kind == REGISTER && tok5.toInt() >= 0 && tok5.toInt() <= 31)   )
+         
+      {  return true;   }
+   return false;
+}
+
+// true if the current line has a sequence of:
+// REGISTER, COMMA, REGISTER, COMMA, INT or HEXINT
+// used in beq bne
+bool check_reg_comma_reg_comma_intHexintLabel (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < j + 6) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         tok3.kind == REGISTER &&
+         tok4.kind == COMMA  &&
+         (( tok5.kind == INT && inRange16signed (tok5.toInt())) || 
+          ( tok5.kind == HEXINT && inRange16signed (tok5.toInt())) || 
+            tok5.kind == ID)  )
+       {  return true;  }
+
+   return false;
+}
+
+
+// true if the current line has a sequence of:
+// REGISTER, COMMA, INT, LPARENS, REGISTER, RPARENS
+// used in sw lw
+bool check_reg_comma_intHex_lpar_reg_rpar (vector<vector<Token> > &tokLines, int line, int j) {
+   if (tokLines[line].size() < j + 7) {return false;}
+   Token tok1 = tokLines[line][j+1];
+   Token tok2 = tokLines[line][j+2];
+   Token tok3 = tokLines[line][j+3];
+   Token tok4 = tokLines[line][j+4];
+   Token tok5 = tokLines[line][j+5];
+   Token tok6 = tokLines[line][j+6];
+   if (
+         tok1.kind == REGISTER &&
+         tok2.kind == COMMA &&
+         (  ((tok3.kind == INT || tok3.kind == HEXINT)) && 
+            (inRange16signed (tok3.toInt()))) &&
+         tok4.kind == LPAREN  &&
+         tok5.kind == REGISTER &&
+         tok6.kind == RPAREN )   {  return true;  }
+
+   return false;
+}
+
+// Check procedures
+//^====================================================================^
 
 
 
@@ -509,7 +500,7 @@ void pass1 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                cerr << "ERROR on labelNumber" << line << " "
                << token.lexeme << " is already defined with value: "
                << it->second << endl;
-               exit (1);
+               line ++;
             }
          } // if (LABEL)
 
@@ -575,7 +566,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   if (it == labelMap.end()) {
                   cerr << "ERROR: Parse error in line: " << line <<
                   ": No such label: '" << nextToken.lexeme << endl;
-                  exit (1);
+                  break;
                } else {
                   // since label exists, dereference address and print to binary
                   int value = labelMap[nextToken.lexeme];
@@ -586,6 +577,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                } else {
                cerr << "ERROR Improper .word on (" << line <<
                "), expecting INT or HEXINT or ID" << endl;
+               break;
                }
             }  // End .word
 
@@ -600,7 +592,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   j += 1;
                   validLines++;
                }
-               if ((token.lexeme == "jalr") && (check_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "jalr") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
 //                  DBGVAR (cout, d);
                   asm_jalr (d);
@@ -610,7 +602,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
             // End jr, jalr
 
             // beq, bne
-               if (  ((token.lexeme == "beq") || (token.lexeme == "bne"))
+               else if (  ((token.lexeme == "beq") || (token.lexeme == "bne"))
                      && (check_reg_comma_reg_comma_intHexintLabel (tokLines, line, j))
                      ) {
                   int s = tokLines[line][j+1].toInt();
@@ -625,8 +617,8 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   } else if ((tokLines[line][j+5].kind == INT) || (tokLines[line][j+5].kind == HEXINT)) {
                      i = tokLines[line][j+5].toInt();
                   } else {
-                     cerr << "ERROR on line" << line << endl;
-                     exit (1);
+                     cerr << "ERROR on line " << line << " " << token.lexeme << endl;
+                     break;
                   }
 //                  DBGVAR (cout, s);
 //                  DBGVAR (cout, t);
@@ -643,7 +635,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
 
 
             // add, sub, slt, sltu
-               if ((token.lexeme == "add") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "add") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
@@ -651,16 +643,15 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   j += 6;
                   validLines++;
                }
-               if ((token.lexeme == "sub") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "sub") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
-                  throw 303;
                   asm_sub (d, s, t);
                   j += 6;
                   validLines++;
                }
-               if ((token.lexeme == "slt") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "slt") && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
@@ -668,7 +659,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   j += 6;
                   validLines++;
                }
-               if ((token.lexeme == "sltu")  && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "sltu")  && (check_reg_comma_reg_comma_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   int s = tokLines[line][j+3].toInt();
                   int t = tokLines[line][j+5].toInt();
@@ -679,19 +670,19 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
             // End add, sub, slt, sltu
 
             //  lis, mflo, mfhi
-               if ((token.lexeme == "lis") && (check_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "lis") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_lis (d);
                   j += 2;
                   validLines++;
                }
-               if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "mflo") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_mflo (d);
                   j += 2;
                   validLines++;
                }
-               if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "mfhi") && (check_reg (tokLines, line, j))) {
                   int d = tokLines[line][j+1].toInt();
                   asm_mfhi (d);
                   j += 2;
@@ -700,28 +691,28 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
             // End lis, mflo, mfhi
 
             // mult, multu, div, divu
-               if ((token.lexeme == "mult") && (check_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "mult") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_mult (s, t);
                   j += 4;
                   validLines++;
                }
-               if ((token.lexeme == "multu") && (check_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "multu") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_multu (s, t);
                   j += 4;
                   validLines++;
                }
-               if ((token.lexeme == "div") && (check_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "div") && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_div (s, t);
                   j += 4;
                   validLines++;
                }
-               if ((token.lexeme == "divu")  && (check_reg_comma_reg (tokLines, line, j))) {
+               else if ((token.lexeme == "divu")  && (check_reg_comma_reg (tokLines, line, j))) {
                   int s = tokLines[line][j+1].toInt();
                   int t = tokLines[line][j+3].toInt();
                   asm_divu (s, t);
@@ -731,7 +722,7 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
             // End mult, multu, div, divu
 
             // sw, lw
-               if ((token.lexeme == "sw") && (check_reg_comma_intHex_lpar_reg_rpar (tokLines, line, j))) {
+               else if ((token.lexeme == "sw") && (check_reg_comma_intHex_lpar_reg_rpar (tokLines, line, j))) {
                   int t =  tokLines[line][j+1].toInt();
                   int i =  tokLines[line][j+3].toInt();
                   int s =  tokLines[line][j+5].toInt();
@@ -750,11 +741,17 @@ void pass2 (vector<vector<Token> > &tokLines, map <string, int> &labelMap, int &
                   validLines++;
                }
             // End sw, lw
+   
+               else {
+                  cerr << "ERROR on line " << line << ": " << token.lexeme << endl;
+                  break;
+               }
 
-            } // End token.kind == ID
-//            else {
-//               cerr << "ERROR pass2 " << token.lexeme << endl;
-//            }
+            } // End else if (token.kind == ID)
+            else if (token.kind == REGISTER){
+               cerr << "ERROR on line " << line << ": " << token.lexeme << endl;
+               break;
+            }
          } // End for loop of (word) in each (line)
       } // End for loop of (line)
 }
@@ -806,8 +803,7 @@ int main() {
       pass2 (tokLines, labelMap, labelNumber);
 
    } catch(string msg) {
-     cerr << "ERROR " << msg << endl;
-//     exit (1);  // comment out to supress errors
+     cerr << msg << endl;
    }
    return 0;
 }

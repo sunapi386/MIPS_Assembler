@@ -1,5 +1,13 @@
-lw add $1, $2, $3
-sw $3, 0xfffffffc($30)
-beq $0, $0, loop
-bne $19, $20, 32768
-jr $1, $2, $3
+  add $34, $-17, $0
+  sub $3, $2, 1
+  slt $5, $7
+  mult $2 $4
+  div $1, 0xff
+  $3 lis
+  donk $7
+  mflo
+  lw add $1, $2, $3
+ sw $3, 0xfffffffc($30)
+ beq $0, $0, loop
+ bne $19, $20, 32768
+ jr $1, $2, $3

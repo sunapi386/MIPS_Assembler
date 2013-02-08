@@ -1,0 +1,176 @@
+
+----Week 4 Tutorial Solutions-----
+--------Winter 2013---------------
+
+
+Problem 1: Signed integers in C++/Java
+
+(The purpose of this problem is to point out a common error that students
+make on Assignment 4.)
+Solution:
+The function returns 1, since the condition in the if statement is true.
+In C++ and Java, the "int" type is a signed 32-bit two's complement
+integer. That means when i is compared with 0xffff, a signed comparison
+will be performed (in terms of MIPS instructions, slt instead of sltu) and
+so both numbers will be interpreted as 32-bit two's complement integers.
+0xffffffff is -1 in 32-bit two's complement, while 0xffff (which is the
+same thing as 0x0000ffff) is 65535. So the comparison returns true.
+
+Note that this is not an issue in Scheme, since integers have arbitrary
+precision and so there's no need for signed/unsigned types.
+
+Now, for A4P3 and A4P7 on the assignment, you have to write code that
+handles beq, bne, lw and sw instructions. The thing these instructions
+all have in common is that they take a 16-bit immediate value as one of
+their operands. If it's a decimal integer, it must be in the range
+-32768 to 32767, and if it's a hexadecimal integer, it must be in the
+range 0x0000 to 0xffff.
+
+Your code for the range check will probably involve some comparisons with
+hexadecimal values like the comparison in this code. Your code will need
+to reject numbers like 0xffffffff, which are clearly out of range. Keep
+this problem in mind when you write your range checking code for A4P3 and
+A4P7. Make sure you understand how the computer is interpreting the values
+you work with.
+
+
+Problem 2: Assembling beq instructions with labels
+
+Solution:
+Why the addr parameter is necessary: beq/bne take a relative branch offset
+instead of an absolute branch address. That is, beq $0, $0, 4 means
+"starting from the current location of PC, move 4 words ahead" instead
+of "go to address 4". When a label is given as the branch target, it
+must be converted to a relative offset. To figure out how many words to
+move forwards or backwards by from the current instruction to reach the
+label, we need to know where the current instruction is.
+
+Code:
+assemble_beq_label(int s, int t, string label, int addr) {
+    int labelValue = table_lookup(label);
+    if (labelValue == -1) {
+        error("ERROR undefined label");
+    }
+    int offset = (labelValue - (addr + 4)) / 4;
+    if (-32768 <= offset && offset <= 32767) {
+        return assemble_beq(s,t,offset);
+    } else {
+        error("ERROR branch offset out of range");
+    }
+}
+
+assemble_beq(int s, int t, int i) {
+    return (4 << 26) | (s << 21) | (t << 16) | (i & 0xffff);
+}
+
+Explanation:
+First consider how to assemble beq instructions with integer offsets.
+If we write a function assemble_beq that handles integer offsets, then
+all we need to do is compute the offset corresponding to the given
+label and pass it into assemble_beq.
+
+You should be familiar with the beq encoding example from class by now.
+(http://www.student.cs.uwaterloo.ca/~cs241/slides/encoding_beq_all.pdf)
+This tells us how to assemble the specific beq instruction beq $1, $2, -3.
+We can easily generalize it into a function that assembles any beq
+instruction with integer offsets by just replacing 1 with s, 2 with t
+and i with -3.
+
+assemble_beq(int s, int t, int i) {
+    return (4 << 26) | (s << 21) | (t << 16) | (i & 0xffff);
+}
+
+Now given the name of a label and the address of a beq instruction, we
+need to calculate the offset. Let's look at an example program.
+
+0  .word 0
+   loop:
+4  .word 0
+8  beq $0, $0, skip
+12 .word 0
+16 .word 0
+20 .word 0
+   skip:
+24 beq $0, $0, loop
+28 jr $31
+
+Before doing any calculations, we need to look up the values of the labels
+in our symbol table. "loop" has value 4 and "skip" has value 24.
+
+Let's look at "beq $0, $0, skip" first. Recall that when a branch is
+taken, PC gets set to PC + (offset * 4). When "beq $0, $0, skip" is
+executed, PC is 12, since PC always points to the address of the next
+instruction. If 12 + (offset * 4) = 24 (the value of skip), then the
+offset must be 3.
+
+Now consider "beq $0, $0, loop". When the instruction is executed, PC is
+28. If we are jumping back to 4, we have 28 + (offset * 4) = 4, and so
+the offset must be -6.
+
+In general, we have:
+labelValue = PC + (offset * 4)
+labelValue - PC = offset * 4
+(labelValue - PC)/4 = offset
+Since PC is the address of the next instruction, we can write:
+(labelValue - (addr + 4))/4 = offset
+
+This is the formula for computing branch offsets. In our code, we just
+need to look up the value of the label in the symbol table then use it
+to compute the offset.
+
+    int labelValue = table_lookup(label);
+    if (labelValue == -1) {
+        error("ERROR undefined label");
+    }
+
+This looks up the label, and prints an error message if it doesn't exist.
+If there was no error, we can compute the offset.
+
+    int offset = (labelValue - (addr + 4)) / 4;
+
+Finally, we need to call on assemble_beq to return the binary form of the
+instruction. But before doing that, we need to make sure the offset is in
+the correct range, since assemble_beq doesn't do any range checks.
+
+    if (-32768 <= offset && offset <= 32767) {
+        return assemble_beq(s,t,offset);
+    } else {
+        error("ERROR branch offset out of range");
+    }
+
+This completes the function.
+
+
+Problem 3: Errors
+
+1  add $34, $-17, $0
+2  sub $3, $2, 1
+3  slt $5, $7
+4  mult $2 $4
+5  div $1, 0xff
+6  $3 lis
+7  donk $7
+8  mflo
+9  lw add $1, $2, $3
+10 sw $3, 0xfffffffc($30)
+11 beq $0, $0, loop
+12 bne $19, $20, 32768
+13 jr $1, $2, $3
+Line 1:  Register numbers out of range.
+Line 2:  Invalid token type for third operand.
+Line 3:  Missing third operand.
+Line 4:  Expected a comma after first operand.
+Line 5:  Invalid token type for second operand. (Write tests to ensure that
+each individual operand of an instruction is being checked for errors
+correctly.)
+Line 6:  Expected an instruction name or label, found a register.
+Line 7:  Invalid instruction name.
+Line 8:  Missing first operand.
+Line 9:  Invalid token type for first operand.
+Line 10: Immediate value out of range. (Make sure you handle cases like
+this correctly if using C++ or Java -- recall Problem 1.)
+Line 11: Undefined label 'loop'.
+Line 12: Immediate value out of range. (Test boundary cases like this to
+make sure your range checks work correctly.)
+Line 13: Too many operands.
+
